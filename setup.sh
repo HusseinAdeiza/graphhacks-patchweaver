@@ -27,19 +27,23 @@ echo "    FalkorDB ready."
 echo "==> [2/6] Installing Node dependencies"
 npm install --no-audit --no-fund >/dev/null
 
-echo "==> [3/6] Seeding the demo dependency graph into FalkorDB"
+echo "==> [3/6] Seeding the demo dependency graph (deterministic reset)"
 node graph/load.js
 
-echo "==> [4/6] (optional) Pulling LIVE advisories from OSV for lodash, qs, minimist"
-echo "    (set SKIP_OSV=1 to use only the seeded demo advisories)"
-if [ "${SKIP_OSV:-0}" != "1" ]; then
+if [ "${SKIP_OSV:-0}" = "1" ]; then
+  echo "==> [4/6] SKIP_OSV=1 — using seeded demo advisories only"
+else
+  echo "==> [4/6] Pulling LIVE advisories from OSV for lodash, qs, minimist"
   node graph/osv.js "lodash,qs,minimist" || echo "    (OSV unreachable — continuing with demo advisories)"
 fi
 
 echo "==> [5/6] Running the PatchWeaver agent (OBSERVE -> PLAN -> ACT -> VERIFY)"
 node agent/act.js .
 
-echo "==> [6/6] Done. Patched manifest written to package.patched.json"
+echo "==> [6/6] Verifying (standalone check with exit code)"
+node verify.js
+
 echo ""
-echo "To run just the plan (no file writes):  node planner/plan.js"
-echo "To explore the graph in Cypher:         cypher/queries.cypher"
+echo "Done. Patched manifest written to package.patched.json"
+echo "  plan only : node planner/plan.js"
+echo "  Cypher    : cypher/queries.cypher"
