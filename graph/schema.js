@@ -36,7 +36,7 @@ export const SAMPLE = {
   // Direct + transitive packages with the constraints between them.
   // constraint = the semver range the PARENT requires of the CHILD.
   packages: [
-    { name: "web-app", version: "1.0.0" },
+    { name: "web-app", versions: ["1.0.0", "1.1.0", "2.0.0"] },
     { name: "lodash", versions: ["4.17.11", "4.17.15", "4.17.20", "4.17.21"] },
     { name: "express", versions: ["4.16.0", "4.17.1", "4.18.2"] },
     { name: "body-parser", versions: ["1.18.0", "1.19.0", "1.20.1"] },

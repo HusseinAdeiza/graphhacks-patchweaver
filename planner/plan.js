@@ -84,17 +84,21 @@ function planAdvisory(adv, model) {
   }
 
   // 2) Constrained: no available version works under current parent pins.
-  //    Propose bumping the blocking parent(s) to their latest, then re-test.
+  //    Propose bumping the blocking parent(s) to their latest, and record the
+  //    constraint the NEW parent will declare for this child: a caret on the
+  //    fixed version's major, which is what a fresh `npm i pkg@fix` writes.
   const blockers = ps.filter((p) => !safeSatisfies(adv.fixed, p.constraint));
   const parentBumps = [];
+  const fixMajor = semver.major(adv.fixed);
+  const fixMinor = semver.minor(adv.fixed);
+  // A fresh `npm i <pkg>@<fixed>` writes a caret range pinned to the fixed
+  // minor, e.g. qs@6.10.3 -> ^6.10.0. We use that as the range a bumped parent
+  // declares for this child.
+  const newConstraint = `^${fixMajor}.${fixMinor}.0`;
   for (const b of blockers) {
     const latest = (versions[b.parent] || []).filter(semver.valid).sort(semver.compare).pop();
-    if (latest) parentBumps.push({ parent: b.parent, from: "current", to: latest, relConstraint: b.constraint });
+    if (latest) parentBumps.push({ parent: b.parent, from: "current", to: latest, relConstraint: b.constraint, newConstraint });
   }
-  // After bumping the blockers, does the fixed version now satisfy? We model the
-  // bumped parent as adopting a permissive range (its latest), so the constraint
-  // becomes "whatever the new parent declares" — conservatively, we re-check
-  // against the blocker's *new* latest using caret semantics of the fix's major.
   const fixAfterBump = (versions[pkg] || []).filter((v) => semver.valid(v) && !semver.lt(v, adv.fixed)).sort(semver.compare);
   return {
     advisory: adv.id, pkg, severity: adv.severity,
