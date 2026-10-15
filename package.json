@@ -1,0 +1,8 @@
+{
+  "name": "patchweaver",
+  "type": "module",
+  "version": "0.1.0",
+  "dependencies": {
+    "semver": "^7.8.5"
+  }
+}
