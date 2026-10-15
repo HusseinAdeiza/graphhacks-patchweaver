@@ -11,6 +11,7 @@
 // parents gate a package, so applying "bump qs to 6.10.3" automatically pulls
 // in "bump body-parser" because the graph says body-parser constrains qs.
 
+import semver from "semver";
 import fs from "fs";
 import path from "path";
 import { plan, renderPlan } from "../planner/plan.js";
@@ -21,15 +22,20 @@ import { rows } from "../graph/load.js";
 function applyPlan(rootPkg, planResult) {
   const deps = { ...rootPkg.dependencies };
   const touched = [];
+  // Track the highest version each package must reach across ALL advisories, so
+  // a package fixed by several advisories ends up at the version that satisfies
+  // all of them (e.g. one advisory needs lodash 4.18.0, another 4.17.21 -> 4.18.0).
+  const target = {}; // pkg -> highest required version
   for (const r of planResult.plan) {
+    target[r.pkg] = higherVersion(target[r.pkg], r.target);
+  }
+  for (const r of planResult.plan) {
+    const t = target[r.pkg];
     if (r.action === "upgrade") {
-      if (deps[r.pkg] !== undefined) deps[r.pkg] = r.target;
-      touched.push({ pkg: r.pkg, to: r.target, via: "direct" });
+      if (deps[r.pkg] !== undefined) deps[r.pkg] = t;
+      touched.push({ pkg: r.pkg, to: t, via: "direct" });
     } else if (r.action === "upgrade-with-parent-bumps") {
-      // Record the transitive fix AND every parent bump. Only root-level deps
-      // appear in package.json, but we track all touched versions so VERIFY can
-      // reason about the whole tree.
-      touched.push({ pkg: r.pkg, to: r.target, via: "transitive-fix" });
+      touched.push({ pkg: r.pkg, to: t, via: "transitive-fix" });
       for (const b of r.parentBumps) {
         if (deps[b.parent] !== undefined) deps[b.parent] = b.to;
         touched.push({ pkg: b.parent, to: b.to, via: "parent-bump" });
@@ -37,6 +43,12 @@ function applyPlan(rootPkg, planResult) {
     }
   }
   return { pkg: { ...rootPkg, dependencies: deps }, touched };
+}
+
+function higherVersion(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  try { return semver.gt(a, b) ? a : b; } catch { return a; }
 }
 
 // VERIFY: after the plan, every advisory's package runs a version >= fixed, AND
@@ -106,7 +118,12 @@ export async function run(rootPkg, outDir = ".") {
     console.log(`      ${c.resolves ? "PASS" : "FAIL"}  ${c.advisory}: ${c.pkg}@${c.finalVersion} — ${c.detail}`);
   }
   const allPass = checks.every((c) => c.resolves);
-  console.log(`\n== ${allPass ? "ALL ADVISORIES RESOLVED, NO CONSTRAINTS BROKEN" : "PLAN INCOMPLETE — see FAILs above"} ==`);
+  const resolved = checks.filter((c) => c.resolves).length;
+  if (allPass) {
+    console.log(`\n== ALL ${checks.length} ADVISORIES RESOLVED, NO CONSTRAINTS BROKEN ==`);
+  } else {
+    console.log(`\n== ${resolved}/${checks.length} ADVISORIES RESOLVED — remaining need versions not present in this dependency graph (add them to the tree and re-run) ==`);
+  }
   return { planResult, newPkg, touched, checks, allPass, outPath };
 }
 

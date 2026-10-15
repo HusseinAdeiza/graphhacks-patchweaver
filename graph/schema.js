@@ -37,11 +37,11 @@ export const SAMPLE = {
   // constraint = the semver range the PARENT requires of the CHILD.
   packages: [
     { name: "web-app", versions: ["1.0.0", "1.1.0", "2.0.0"] },
-    { name: "lodash", versions: ["4.17.11", "4.17.15", "4.17.20", "4.17.21"] },
+    { name: "lodash", versions: ["4.17.11", "4.17.15", "4.17.20", "4.17.21", "4.17.23", "4.18.0"] },
     { name: "express", versions: ["4.16.0", "4.17.1", "4.18.2"] },
     { name: "body-parser", versions: ["1.18.0", "1.19.0", "1.20.1"] },
-    { name: "qs", versions: ["6.5.1", "6.5.2", "6.5.3"] },
-    { name: "minimist", versions: ["0.0.8", "1.2.5", "1.2.6"] },
+    { name: "qs", versions: ["6.5.1", "6.5.2", "6.5.3", "6.10.3", "6.11.0"] },
+    { name: "minimist", versions: ["0.0.8", "1.2.5", "1.2.6", "1.2.8"] },
     { name: "debug", versions: ["2.6.8", "2.6.9", "4.3.4"] },
     { name: "ms", versions: ["2.0.0", "2.1.2"] },
   ],
